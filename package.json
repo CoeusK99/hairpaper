@@ -1,0 +1,20 @@
+{
+  "name": "hair-papers",
+  "version": "1.0.0",
+  "description": "定期從 PubMed 追蹤生髮／植髮／毛髮相關論文，產出 Web 儀表板、Email 摘要與 Markdown 彙整",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "crawl": "node src/crawl.js",
+    "start": "node src/server.js",
+    "dev": "node src/server.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.8.1",
+    "express": "^4.21.2",
+    "fast-xml-parser": "^4.5.1",
+    "nodemailer": "^6.9.16"
+  }
+}

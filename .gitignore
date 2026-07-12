@@ -1,0 +1,8 @@
+node_modules/
+.env
+.DS_Store
+
+# SQLite 的 WAL 暫存檔不進版控；papers.db 本體要進版控，
+# 這樣雲端排程抓到的資料能同步回來、也保留 PMID 去重狀態。
+data/*.db-wal
+data/*.db-shm

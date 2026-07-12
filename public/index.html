@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>毛髮論文追蹤</title>
+  <style>
+    :root {
+      --bg: #f6f7f9; --card: #fff; --text: #111827; --muted: #6b7280;
+      --border: #e5e7eb; --accent: #2563eb; --accent-soft: #dbeafe; --star: #f59e0b;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f1115; --card: #191c22; --text: #e5e7eb; --muted: #9ca3af;
+        --border: #2a2f38; --accent: #60a5fa; --accent-soft: #1e293b; --star: #fbbf24;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: var(--bg); color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.5;
+    }
+    header {
+      position: sticky; top: 0; z-index: 10; background: var(--card);
+      border-bottom: 1px solid var(--border); padding: 14px 20px;
+    }
+    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    h1 { font-size: 18px; margin: 0; flex: 1; }
+    .stats { font-size: 12px; color: var(--muted); }
+    button, .chip {
+      font: inherit; cursor: pointer; border: 1px solid var(--border);
+      background: var(--card); color: var(--text); border-radius: 999px;
+      padding: 6px 14px; font-size: 13px; transition: all .15s;
+    }
+    .chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    button.primary { background: var(--accent); color: #fff; border-color: var(--accent); border-radius: 8px; }
+    button:disabled { opacity: .5; cursor: default; }
+    #search {
+      flex: 1; min-width: 180px; padding: 8px 12px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 14px;
+    }
+    main { max-width: 860px; margin: 0 auto; padding: 16px 20px 60px; }
+    .card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+      padding: 16px 18px; margin-bottom: 14px;
+    }
+    .card.read { opacity: .55; }
+    .card h2 { font-size: 16px; margin: 0 0 6px; line-height: 1.4; }
+    .card h2 a { color: var(--text); text-decoration: none; }
+    .card h2 a:hover { text-decoration: underline; }
+    .meta { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+    .authors { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+    .abstract { font-size: 13.5px; color: var(--text); }
+    .abstract.clamp { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+    .tags { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+    .tag { font-size: 11px; background: var(--accent-soft); color: var(--accent); padding: 2px 9px; border-radius: 999px; }
+    .actions { display: flex; gap: 8px; margin-top: 10px; align-items: center; }
+    .actions a { font-size: 12px; color: var(--accent); text-decoration: none; margin-right: 6px; }
+    .iconbtn { background: none; border: none; font-size: 16px; padding: 2px 6px; }
+    .starred { color: var(--star); }
+    .empty { text-align: center; color: var(--muted); padding: 60px 0; }
+    .toggle-abs { font-size: 12px; color: var(--accent); cursor: pointer; background: none; border: none; padding: 4px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="row">
+      <h1>🧬 毛髮論文追蹤</h1>
+      <span class="stats" id="stats">載入中…</span>
+      <button class="primary" id="crawlBtn">立即更新</button>
+    </div>
+    <div class="row" style="margin-top:10px;">
+      <input id="search" placeholder="搜尋標題／摘要／作者…" />
+    </div>
+    <div class="row" style="margin-top:10px;" id="filters">
+      <span class="chip active" data-topic="">全部</span>
+      <span class="chip" data-flag="unread">未讀</span>
+      <span class="chip" data-flag="starred">★ 收藏</span>
+    </div>
+  </header>
+  <main id="list"><div class="empty">載入中…</div></main>
+
+  <script>
+    const state = { topic: '', q: '', unread: false, starred: false };
+    const $ = (s) => document.querySelector(s);
+
+    async function loadTopics() {
+      const topics = await (await fetch('/api/topics')).json();
+      const filters = $('#filters');
+      const flagChips = filters.querySelectorAll('[data-flag]');
+      topics.forEach((t) => {
+        const chip = document.createElement('span');
+        chip.className = 'chip'; chip.dataset.topic = t.key; chip.textContent = t.label;
+        filters.insertBefore(chip, flagChips[0]);
+      });
+      filters.addEventListener('click', (e) => {
+        const chip = e.target.closest('.chip');
+        if (!chip) return;
+        if (chip.dataset.flag) {
+          chip.classList.toggle('active');
+          state[chip.dataset.flag] = chip.classList.contains('active');
+        } else {
+          filters.querySelectorAll('[data-topic]').forEach((c) => c.classList.remove('active'));
+          chip.classList.add('active');
+          state.topic = chip.dataset.topic;
+        }
+        load();
+      });
+    }
+
+    async function loadStats() {
+      const s = await (await fetch('/api/stats')).json();
+      const last = s.lastRun?.finished_at ? `　上次更新 ${s.lastRun.finished_at}` : '';
+      $('#stats').textContent = `共 ${s.total} 篇 · 未讀 ${s.unread} · 收藏 ${s.starred}${last}`;
+    }
+
+    function card(p) {
+      const el = document.createElement('div');
+      el.className = 'card' + (p.is_read ? ' read' : '');
+      const tags = (p.topics || '').split(',').filter(Boolean)
+        .map((k) => `<span class="tag">${window.TOPIC_LABELS[k] || k}</span>`).join('');
+      const meta = [p.journal, p.pub_date].filter(Boolean).join(' · ');
+      el.innerHTML = `
+        <h2><a href="${p.url}" target="_blank" rel="noopener">${escapeHtml(p.title)}</a></h2>
+        <div class="meta">${escapeHtml(meta)}</div>
+        <div class="authors">${escapeHtml(p.authors || '')}</div>
+        <div class="tags">${tags}</div>
+        <div class="abstract clamp">${escapeHtml(p.abstract || '（無摘要）')}</div>
+        ${p.abstract && p.abstract.length > 240 ? '<button class="toggle-abs">展開全文摘要</button>' : ''}
+        <div class="actions">
+          <a href="${p.url}" target="_blank" rel="noopener">PubMed ↗</a>
+          ${p.doi ? `<a href="https://doi.org/${p.doi}" target="_blank" rel="noopener">DOI ↗</a>` : ''}
+          <span style="flex:1"></span>
+          <button class="iconbtn star ${p.is_starred ? 'starred' : ''}">${p.is_starred ? '★' : '☆'}</button>
+          <button class="iconbtn read">${p.is_read ? '↩ 標未讀' : '✓ 已讀'}</button>
+        </div>`;
+      el.querySelector('.toggle-abs')?.addEventListener('click', (e) => {
+        el.querySelector('.abstract').classList.toggle('clamp');
+        e.target.textContent = el.querySelector('.abstract').classList.contains('clamp') ? '展開全文摘要' : '收合';
+      });
+      el.querySelector('.star').addEventListener('click', async () => {
+        const next = p.is_starred ? 0 : 1;
+        await fetch(`/api/papers/${p.pmid}/star`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ is_starred: next }) });
+        p.is_starred = next; load(); loadStats();
+      });
+      el.querySelector('.read').addEventListener('click', async () => {
+        const next = p.is_read ? 0 : 1;
+        await fetch(`/api/papers/${p.pmid}/read`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ is_read: next }) });
+        p.is_read = next; load(); loadStats();
+      });
+      return el;
+    }
+
+    async function load() {
+      const params = new URLSearchParams();
+      if (state.topic) params.set('topic', state.topic);
+      if (state.q) params.set('q', state.q);
+      if (state.unread) params.set('unread', '1');
+      if (state.starred) params.set('starred', '1');
+      const papers = await (await fetch('/api/papers?' + params)).json();
+      const list = $('#list');
+      list.innerHTML = '';
+      if (!papers.length) { list.innerHTML = '<div class="empty">目前沒有符合的論文。試著按「立即更新」抓取。</div>'; return; }
+      papers.forEach((p) => list.appendChild(card(p)));
+    }
+
+    function escapeHtml(s) {
+      return String(s || '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    }
+
+    let searchTimer;
+    $('#search').addEventListener('input', (e) => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => { state.q = e.target.value.trim(); load(); }, 300);
+    });
+
+    $('#crawlBtn').addEventListener('click', async () => {
+      const btn = $('#crawlBtn');
+      btn.disabled = true; btn.textContent = '更新中…';
+      try {
+        const r = await fetch('/api/crawl', { method: 'POST' });
+        const data = await r.json();
+        btn.textContent = r.ok ? `新增 ${data.newCount} 篇` : (data.error || '失敗');
+      } catch { btn.textContent = '失敗'; }
+      await loadStats(); await load();
+      setTimeout(() => { btn.disabled = false; btn.textContent = '立即更新'; }, 2500);
+    });
+
+    (async () => {
+      const topics = await (await fetch('/api/topics')).json();
+      window.TOPIC_LABELS = Object.fromEntries(topics.map((t) => [t.key, t.label]));
+      await loadTopics();
+      await loadStats();
+      await load();
+    })();
+  </script>
+</body>
+</html>
