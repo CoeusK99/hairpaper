@@ -8,7 +8,7 @@
 
 雲端 routine 需要一個綁定本 repo 的 Claude Code 雲端環境（授權 GitHub 只有帳號本人能做）：
 
-1. 到 claude.ai → Claude Code / Cloud → 新增一個環境，連結 GitHub repo `CoeusK99/TASK1`。
+1. 到 claude.ai → Claude Code / Cloud → 新增一個環境，連結 GitHub repo `CoeusK99/hairpaper`。
 2. 建好後，把該環境的 **environment_id** 交給我，我用 API 幫你把 routine 建起來，
    或你直接在該介面新增排程並貼上下面的「Routine 指令」。
 
@@ -18,14 +18,14 @@
 - Routine 指令（貼進排程的 prompt）：
 
 ```
-每天更新 hair-papers 論文資料庫並同步回 repo：
-1. 在 repo 根目錄執行 git pull origin main。
-2. cd hair-papers && npm install。
+每天更新論文資料庫並同步回 repo：
+1. git pull origin main。
+2. npm install。
 3. npm run crawl（向 PubMed 抓最近 30 天生髮/植髮/毛髮論文，更新 data/papers.db、
    產生 digests/當日.md；若環境變數有設 SMTP_* 就寄 Email 摘要）。
-4. 若 hair-papers/data/papers.db 或 hair-papers/digests/ 有變更，執行：
-   git add -f hair-papers/data/papers.db hair-papers/digests
-   git commit -m "chore(hair-papers): 每日論文更新"
+4. 若 data/papers.db 或 digests/ 有變更，執行：
+   git add data/papers.db digests
+   git commit -m "chore: 每日論文更新"
    git push origin main
 5. 回報本次新增幾篇（crawl 輸出的「其中 N 篇為新論文」）。
 ```
