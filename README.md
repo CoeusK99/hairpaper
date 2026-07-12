@@ -40,11 +40,16 @@ npm start        # 開啟本機儀表板 http://localhost:3030
 
 見 [`SCHEDULE.md`](SCHEDULE.md)：本機 cron／launchd 與雲端排程兩種做法。
 
-## Email 設定（Gmail）
+## Email 設定（兩種擇一）
 
-`.env` 裡的 `SMTP_PASS` 要填 **Gmail 應用程式密碼**（16 碼），不是登入密碼：
-先在 Google 帳號開啟兩步驟驗證 → 搜尋「應用程式密碼」→ 產生一組貼上。
-未設定 SMTP 時系統會自動略過寄信，其他功能照常。
+**方式一（推薦）Resend API** — 不需 Gmail 密碼，雲端排程也好用：
+到 [resend.com](https://resend.com) 用你的收件信箱註冊（免費每天 100 封）→ 建一把 API key →
+填進 `.env` 的 `RESEND_API_KEY`。未驗證自有網域時，寄件人用 `onboarding@resend.dev`，
+收件人（`MAIL_TO`）須是註冊 Resend 的那個信箱。
+
+**方式二 SMTP** — 例如 Gmail：`.env` 的 `SMTP_PASS` 填 **應用程式密碼**（16 碼，非登入密碼）。
+
+設了 `RESEND_API_KEY` 會優先走 Resend。兩者都沒設就自動略過寄信，其他功能照常。
 
 ## 資料存放
 

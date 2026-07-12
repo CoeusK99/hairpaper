@@ -35,13 +35,15 @@ routine 每次跑會把新資料 push 回 repo，你本機 `git pull` + `npm sta
 之後你在本機只要 `git pull`，再 `npm start` 開儀表板，就能看到雲端抓到的最新資料。
 PMID 去重狀態存在 `data/papers.db` 裡，一起進版控，所以雲端每次跑不會重複通知舊論文。
 
-### Email 要另外開啟
+### Email 要另外開啟（用 Resend，不需 Gmail 密碼）
 
-雲端環境預設沒有你的 Gmail 密碼，所以**雲端排程預設不會寄 Email**（會自動略過，其他照常）。
-要讓雲端也寄信，需你自己在雲端排程的環境變數裡加上 `SMTP_*`／`MAIL_*`（見 `.env.example`），
-其中 `SMTP_PASS` 是 Gmail 應用程式密碼。密碼屬於你的機密，請自行設定，我不會代填。
+要讓雲端每早寄摘要，在雲端環境的環境變數加上：
+- `RESEND_API_KEY`（到 resend.com 用收件信箱註冊後產生，免費每天 100 封）
+- `MAIL_TO=coeusxd@gmail.com`
+- `MAIL_FROM=hair-papers <onboarding@resend.dev>`（未驗證自有網域時的預設寄件人）
 
-在本機執行 `npm run crawl` 時只要 `.env` 有設定就會正常寄信，不受此限。
+API key 由你自己註冊產生、自行填入，屬你的機密，我不代填。沒設就自動略過寄信、其他照常。
+本機執行 `npm run crawl` 時 `.env` 有設一樣會寄。細節見 `.env.example` 與 `README.md`。
 
 ### 調整排程
 
