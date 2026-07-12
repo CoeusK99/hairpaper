@@ -15,19 +15,22 @@
 ### 排程與指令
 
 - 建議排程：每天 08:17（cron `17 8 * * *`，Asia/Taipei；避開整點分散負載）
-- Routine 指令（貼進排程的 prompt）：
+- Routine 指令（**只把下面這段**貼進排程的 Instructions；不要貼整份說明文件）：
 
 ```
-每天更新論文資料庫並同步回 repo：
-1. git pull origin main。
-2. npm install。
-3. npm run crawl（向 PubMed 抓最近 30 天生髮/植髮/毛髮論文，更新 data/papers.db、
-   產生 digests/當日.md；若環境變數有設 SMTP_* 就寄 Email 摘要）。
-4. 若 data/papers.db 或 digests/ 有變更，執行：
+你是自動排程代理，工作目錄是 git repo CoeusK99/hairpaper。每次執行請完成：
+1. git pull origin main（取得最新）。
+2. npm install（安裝相依套件，含 better-sqlite3）。
+3. npm run crawl —— 向 PubMed 抓最近 30 天生髮/植髮/毛髮論文，更新 data/papers.db、
+   產生 digests/當日.md；環境變數有 RESEND_API_KEY 時會自動寄 Email 摘要。
+4. 若 git status 顯示 data/papers.db 或 digests/ 有變更，依序執行：
    git add data/papers.db digests
    git commit -m "chore: 每日論文更新"
    git push origin main
-5. 回報本次新增幾篇（crawl 輸出的「其中 N 篇為新論文」）。
+   （沒有任何變更就跳過，不用 commit。）
+5. 回報這次「新增 N 篇論文」（取自 crawl 輸出的「其中 N 篇為新論文」）。
+
+不要修改程式碼、不要做其他事，也不需要索取或回報任何 environment_id 或密鑰。
 ```
 
 routine 每次跑會把新資料 push 回 repo，你本機 `git pull` + `npm start` 就看得到。
