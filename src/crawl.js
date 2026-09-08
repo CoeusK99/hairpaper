@@ -11,9 +11,10 @@ try {
 
 const { TOPICS } = await import('./config.js');
 const { searchPmids, fetchDetails } = await import('./pubmed.js');
-const { upsertPaper, startRun, finishRun, getPapersByPmids, checkpoint } = await import('./db.js');
+const { upsertPaper, startRun, finishRun, getPapersByPmids, saveSummary, checkpoint } = await import('./db.js');
 const { writeMarkdown, buildEmailHtml, todayStr } = await import('./digest.js');
 const { sendDigestEmail, mailerConfigured } = await import('./mailer.js');
+const { summarizePapers, summarizerConfigured } = await import('./summarize.js');
 
 export async function runCrawl({ quiet = false } = {}) {
   const log = quiet ? () => {} : (...a) => console.log(...a);
@@ -42,6 +43,21 @@ export async function runCrawl({ quiet = false } = {}) {
       (b.pub_date || '').localeCompare(a.pub_date || '')
     );
     const dateStr = todayStr();
+
+    // 0) 中文摘要 + 雄性禿／植髮手術重點分析（未設定 ANTHROPIC_API_KEY 時自動略過）
+    if (summarizerConfigured() && newPapers.length) {
+      log(`🤖 產生中文摘要（${newPapers.length} 篇）…`);
+      const summaries = await summarizePapers(newPapers, { log });
+      for (const paper of newPapers) {
+        const s = summaries.get(paper.pmid);
+        if (!s) continue;
+        saveSummary(paper.pmid, s.summary_zh, s.key_analysis_zh);
+        paper.summary_zh = s.summary_zh;
+        paper.key_analysis_zh = s.key_analysis_zh;
+      }
+    } else if (!summarizerConfigured()) {
+      log('🤖 未設定 ANTHROPIC_API_KEY，略過中文摘要');
+    }
 
     // 1) Markdown 彙整檔
     const mdFile = writeMarkdown(newPapers, dateStr);

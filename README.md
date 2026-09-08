@@ -5,6 +5,8 @@
 1. **本機 Web 儀表板** — 搜尋、依主題篩選、標記已讀／收藏
 2. **Email 摘要** — 每次更新把新論文整理成一封信寄給你
 3. **Markdown 彙整檔** — 每次更新在 `digests/YYYY-MM-DD.md` 產生一份
+4. **中文摘要與重點分析（選填）** — 每篇新論文自動翻成繁體中文摘要，並標註是否與
+   「雄性禿」或「植髮手術」直接相關、臨床意義為何
 
 資料來自 PubMed 官方 E-utilities API（非爬 HTML，穩定且合規）。
 
@@ -51,9 +53,17 @@ npm start        # 開啟本機儀表板 http://localhost:3030
 
 設了 `RESEND_API_KEY` 會優先走 Resend。兩者都沒設就自動略過寄信，其他功能照常。
 
+## 中文摘要設定（選填）
+
+到 [console.anthropic.com](https://console.anthropic.com) 建立 API key，填進 `.env` 的
+`ANTHROPIC_API_KEY`。每次抓到新論文時，會呼叫 Claude 把標題／摘要濃縮成繁體中文摘要，
+並額外判斷是否與「雄性禿」或「植髮手術」直接相關、給出 2-3 句的臨床意義分析——這段
+分析會在 Markdown、Email、儀表板都以醒目樣式（🎯）標出。不填 `ANTHROPIC_API_KEY` 就自動
+略過，其他功能照常。
+
 ## 資料存放
 
-- `data/papers.db` — SQLite 資料庫（PMID 去重，累積收藏）
-- `digests/` — 每次更新的 Markdown 彙整
+- `data/papers.db` — SQLite 資料庫（PMID 去重、累積收藏、中文摘要），會進版控以便雲端排程同步狀態
+- `digests/` — 每次更新的 Markdown 彙整，會進版控
 
-兩者都在 `.gitignore` 內，不會進版控。
+WAL 暫存檔（`data/*.db-wal`、`data/*.db-shm`）與 `.env` 不會進版控。

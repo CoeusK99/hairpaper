@@ -39,6 +39,11 @@ CREATE TABLE IF NOT EXISTS crawl_runs (
 );
 `);
 
+// 舊資料庫升級：補上中文摘要 / 重點分析欄位（存在就跳過）
+const paperCols = db.prepare('PRAGMA table_info(papers)').all().map((c) => c.name);
+if (!paperCols.includes('summary_zh')) db.exec('ALTER TABLE papers ADD COLUMN summary_zh TEXT');
+if (!paperCols.includes('key_analysis_zh')) db.exec('ALTER TABLE papers ADD COLUMN key_analysis_zh TEXT');
+
 const getPaper = db.prepare('SELECT topics FROM papers WHERE pmid = ?');
 const insertPaper = db.prepare(`
   INSERT INTO papers (pmid, title, abstract, authors, journal, pub_date, doi, url, topics, keywords)
@@ -76,6 +81,13 @@ export function finishRun(id, { newCount, totalFound, note }) {
 // 把 WAL 內容併回 papers.db 本體，讓提交進 git 的 .db 檔是最新且自足的
 export function checkpoint() {
   db.pragma('wal_checkpoint(TRUNCATE)');
+}
+
+const updateSummary = db.prepare('UPDATE papers SET summary_zh = ?, key_analysis_zh = ? WHERE pmid = ?');
+
+// 存入某篇論文的中文摘要與（若相關）雄性禿／植髮手術重點分析
+export function saveSummary(pmid, summary_zh, key_analysis_zh) {
+  updateSummary.run(summary_zh || null, key_analysis_zh || null, pmid);
 }
 
 export function getPapersByPmids(pmids) {

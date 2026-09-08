@@ -38,8 +38,16 @@ export function buildMarkdown(papers, dateStr) {
     if (meta.length) lines.push(meta.join(' · '));
     if (p.authors) lines.push(`> ${p.authors}`);
     lines.push('');
+    if (p.summary_zh) {
+      lines.push(`**中文摘要：** ${p.summary_zh}`);
+      lines.push('');
+    }
+    if (p.key_analysis_zh) {
+      lines.push(`> 🎯 **雄性禿／植髮手術重點分析：** ${p.key_analysis_zh}`);
+      lines.push('');
+    }
     if (p.abstract) {
-      lines.push(truncate(p.abstract, 900));
+      lines.push(p.summary_zh ? `<details><summary>原文摘要</summary>\n\n${truncate(p.abstract, 900)}\n\n</details>` : truncate(p.abstract, 900));
       lines.push('');
     }
     const links = [`[PubMed](${p.url})`];
@@ -67,6 +75,10 @@ export function buildEmailHtml(papers, dateStr) {
         .filter(Boolean)
         .join(' &middot; ');
       const doi = p.doi ? ` &middot; <a href="https://doi.org/${esc(p.doi)}" style="color:#2563eb;">DOI</a>` : '';
+      const analysisBox = p.key_analysis_zh
+        ? `<div style="margin:10px 0;padding:10px 12px;background:#eff6ff;border-left:3px solid #2563eb;border-radius:6px;font-size:13px;color:#1e3a8a;line-height:1.6;">🎯 <strong>雄性禿／植髮手術重點分析：</strong>${esc(p.key_analysis_zh)}</div>`
+        : '';
+      const bodyText = esc(truncate(p.summary_zh || p.abstract, 600));
       return `
         <div style="margin:0 0 22px;padding:0 0 18px;border-bottom:1px solid #e5e7eb;">
           <div style="font-size:16px;font-weight:600;line-height:1.4;color:#111827;">
@@ -74,7 +86,8 @@ export function buildEmailHtml(papers, dateStr) {
           </div>
           <div style="font-size:12px;color:#6b7280;margin:6px 0;">${meta}</div>
           <div style="font-size:12px;color:#6b7280;margin:0 0 8px;">${esc(p.authors)}</div>
-          <div style="font-size:13px;color:#374151;line-height:1.6;">${esc(truncate(p.abstract, 600))}</div>
+          <div style="font-size:13px;color:#374151;line-height:1.6;">${bodyText}</div>
+          ${analysisBox}
           <div style="font-size:12px;margin-top:8px;"><a href="${esc(p.url)}" style="color:#2563eb;">PubMed</a>${doi}</div>
         </div>`;
     })
